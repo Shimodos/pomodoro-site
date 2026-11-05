@@ -232,6 +232,9 @@ internal static class Program
 
     private static void Save(Window window, string path)
     {
+        // A window that just changed size (compact mode) still carries the old layout in its
+        // visual tree; without this the VisualBrush squashes the old content into the new box.
+        window.UpdateLayout();
         Pump(100);
         int w = (int)Math.Round(window.ActualWidth * _scale);
         int h = (int)Math.Round(window.ActualHeight * _scale);
@@ -243,7 +246,9 @@ internal static class Program
         {
             var rect = new Rect(0, 0, window.ActualWidth, window.ActualHeight);
             dc.DrawRectangle(window.Background, null, rect);
-            dc.DrawRectangle(new VisualBrush(window), null, rect);
+            // No stretching: paint the visual 1:1 from the top-left corner, whatever its bounds are.
+            var brush = new VisualBrush(window) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
+            dc.DrawRectangle(brush, null, rect);
         }
         rtb.Render(dv);
 
