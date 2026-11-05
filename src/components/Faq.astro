@@ -1,0 +1,56 @@
+---
+const faq = [
+  {
+    q: 'Is it free?',
+    a: 'Yes. Pomodoro is free and open source under the MIT license. The code, the sounds and the icon are all in the GitHub repository.',
+  },
+  {
+    q: 'Why is there no installer?',
+    a: 'There is nothing to install. Unzip the archive anywhere, run Pomodoro.exe, optionally tick “Start with Windows” in settings. To uninstall, delete the folder and, if you like, %AppData%\\PomodoroTimer.',
+  },
+  {
+    q: 'Windows SmartScreen says the publisher is unknown. Is that normal?',
+    a: 'Yes, for now. The executable is not signed with a paid code-signing certificate, so the first launch of a freshly downloaded build may show a SmartScreen warning. Click “More info”, then “Run anyway”. You can also build the app yourself from the source with the .NET 8 SDK.',
+  },
+  {
+    q: 'Which download should I pick?',
+    a: 'The self-contained zip is the safe choice: it runs on any 64-bit Windows 10 or 11. The framework-dependent zip is a fraction of the size but needs the .NET 8 Desktop Runtime installed.',
+  },
+  {
+    q: 'Does it collect anything or need an account?',
+    a: 'No. It never goes online. The only files it writes are settings.json, a small activity.log with timer events and error.log, all in %AppData%\\PomodoroTimer.',
+  },
+  {
+    q: 'Can I use my own sounds?',
+    a: 'Yes. In Settings → Sound, click the folder icon and pick any WAV or MP3. The eight built-in sounds were synthesized by a script, so they are free to use too.',
+  },
+  {
+    q: 'How do I reset the timer if I switched tabs?',
+    a: 'You don’t need to. Tabs only show a phase; the countdown keeps running on its own tab, marked with a dot. Click the “Focus running” line or the tab to get back. Only the “Start break” button actually switches phases.',
+  },
+];
+---
+
+<section id="faq" class="border-t border-line dark:border-line-dark">
+  <div class="mx-auto grid max-w-6xl gap-12 px-6 py-24 md:grid-cols-[1fr_2fr]">
+    <div>
+      <p class="text-sm font-semibold tracking-wide text-focus uppercase">FAQ</p>
+      <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Questions people ask</h2>
+      <p class="mt-4 text-ink-muted dark:text-ink-muted-dark">
+        Something else? <a href="https://github.com/Shimodos/PomodoroTimer/issues" class="font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-ink dark:text-ink-dark dark:decoration-line-dark dark:hover:decoration-ink-dark">Open an issue</a> on GitHub.
+      </p>
+    </div>
+
+    <div class="divide-y divide-line rounded-2xl border border-line bg-card dark:divide-line-dark dark:border-line-dark dark:bg-card-dark">
+      {faq.map((item) => (
+        <details class="group px-6 py-5 open:bg-paper/60 dark:open:bg-paper-dark/40">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-6 font-medium tracking-tight [&::-webkit-details-marker]:hidden">
+            {item.q}
+            <span class="grid size-7 shrink-0 place-items-center rounded-full bg-paper text-ink-muted transition group-open:rotate-45 dark:bg-paper-dark dark:text-ink-muted-dark" aria-hidden="true">+</span>
+          </summary>
+          <p class="mt-3 pr-10 leading-relaxed text-ink-muted dark:text-ink-muted-dark">{item.a}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>

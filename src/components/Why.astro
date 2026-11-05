@@ -1,0 +1,48 @@
+---
+import Icon from './Icon.astro';
+
+const cards = [
+  {
+    icon: 'feather',
+    title: 'Native and light',
+    text: 'Written in C# and WPF for Windows. One executable, about 40 MB of memory, instant start. No browser engine pretending to be an app.',
+  },
+  {
+    icon: 'palette',
+    title: 'Two colors, zero guessing',
+    text: 'Focus has one accent, breaks have another. The whole window changes color, so one glance at the tray or the ring tells you which timer is running.',
+  },
+  {
+    icon: 'eye',
+    title: 'Tabs that only look',
+    text: 'Switching to the Break tab shows the break, it does not reset the focus you are in. The running tab keeps a dot and a one-click way back.',
+  },
+] as const;
+---
+
+<section class="border-t border-line dark:border-line-dark">
+  <div class="mx-auto max-w-6xl px-6 py-24">
+    <div class="max-w-2xl">
+      <p class="text-sm font-semibold tracking-wide text-focus uppercase">Why another timer</p>
+      <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        Made because the existing ones were web apps in a trench coat
+      </h2>
+      <p class="mt-4 text-lg text-ink-muted text-pretty dark:text-ink-muted-dark">
+        The timer I used before was an Electron app: slow to start, heavy on memory, one sound, and tapping a tab reset the countdown.
+        Pomodoro is the same idea done the Windows way.
+      </p>
+    </div>
+
+    <div class="mt-14 grid gap-6 md:grid-cols-3">
+      {cards.map((c) => (
+        <div class="rounded-2xl border border-line bg-card p-7 dark:border-line-dark dark:bg-card-dark">
+          <div class="grid size-11 place-items-center rounded-xl bg-focus-soft text-focus-deep dark:bg-focus/15 dark:text-focus">
+            <Icon name={c.icon} size={22} />
+          </div>
+          <h3 class="mt-5 text-lg font-semibold tracking-tight">{c.title}</h3>
+          <p class="mt-2 leading-relaxed text-ink-muted dark:text-ink-muted-dark">{c.text}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,41 @@
+---
+import Icon from './Icon.astro';
+
+const features = [
+  { icon: 'layers', title: 'Session limit with a real end time', text: 'Pick 1 to 16 sessions or unlimited. See “1 h 17 min left · until 21:22” update as you go.' },
+  { icon: 'pencil', title: 'Edit lengths in place', text: 'Focus, short and long break are changed right under the ring, no settings trip needed.' },
+  { icon: 'palette', title: 'Focus and break colors', text: 'Eight accents. The break color is picked as a companion of the focus color, or choose your own.' },
+  { icon: 'popup', title: 'Pops up when a phase ends', text: 'The window comes back on top of everything, even from the tray. Switch it off if you prefer quiet.' },
+  { icon: 'volume', title: 'Eight sounds, or yours', text: 'Bell, chime, ding, soft, marimba, beep, digital, alarm. Or any WAV / MP3 file. Volume and preview included.' },
+  { icon: 'bell', title: 'Notifications and tray', text: 'Windows toast on every phase end. Tray icon shows the minutes left. Minimize and close go to the tray.' },
+  { icon: 'compact', title: 'Compact mode', text: 'Shrink to a small ring with the time and one button, perfect for a corner of a second monitor.' },
+  { icon: 'pin', title: 'Always on top', text: 'One click on the pin keeps the timer above your editor or browser.' },
+  { icon: 'moon', title: 'Dark, light or system theme', text: 'Follows Windows by default. Theme and colors preview live while you choose.' },
+  { icon: 'globe', title: 'Three languages', text: 'English, Ukrainian and Russian. Picked from Windows on first run, switchable without a restart.' },
+  { icon: 'power', title: 'Start with Windows', text: 'Optional autostart through the usual Run key. Nothing else touches the registry.' },
+  { icon: 'folder', title: 'Portable if you want', text: 'Settings live in %AppData%\\PomodoroTimer, or anywhere you point POMODORO_DATA_DIR. Delete the folder and it is gone.' },
+] as const;
+---
+
+<section id="features" class="border-t border-line dark:border-line-dark">
+  <div class="mx-auto max-w-6xl px-6 py-24">
+    <div class="max-w-2xl">
+      <p class="text-sm font-semibold tracking-wide text-focus uppercase">Features</p>
+      <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Everything a timer needs, nothing it doesn't</h2>
+    </div>
+
+    <ul class="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+      {features.map((f) => (
+        <li class="flex gap-4">
+          <span class="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl bg-card text-ink ring-1 ring-line dark:bg-card-dark dark:text-ink-dark dark:ring-line-dark">
+            <Icon name={f.icon} size={20} />
+          </span>
+          <div>
+            <h3 class="font-semibold tracking-tight">{f.title}</h3>
+            <p class="mt-1.5 text-[15px] leading-relaxed text-ink-muted dark:text-ink-muted-dark">{f.text}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>

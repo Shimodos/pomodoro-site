@@ -1,0 +1,66 @@
+---
+import Icon from './Icon.astro';
+import Shot from './Shot.astro';
+import focusLight from '../assets/shots/focus-light.png';
+import focusDark from '../assets/shots/focus-dark.png';
+import compactLight from '../assets/shots/compact-light.png';
+import compactDark from '../assets/shots/compact-dark.png';
+---
+
+<section id="top" class="relative overflow-hidden">
+  <!-- soft color wash behind the hero -->
+  <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+    <div class="absolute -top-40 right-[-10%] h-[520px] w-[520px] rounded-full bg-focus/15 blur-3xl dark:bg-focus/10"></div>
+    <div class="absolute top-40 left-[-15%] h-[420px] w-[420px] rounded-full bg-break/15 blur-3xl dark:bg-break/10"></div>
+  </div>
+
+  <div class="mx-auto grid max-w-6xl items-center gap-14 px-6 pt-20 pb-24 md:grid-cols-[1.1fr_1fr] md:pt-28 md:pb-32">
+    <div>
+      <p class="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1 text-xs font-medium text-ink-muted dark:border-line-dark dark:bg-card-dark dark:text-ink-muted-dark">
+        <Icon name="windows" size={14} class="text-break" />
+        Native app for Windows 10 / 11
+      </p>
+
+      <h1 class="text-5xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
+        Focus. Break.<br />Repeat.
+      </h1>
+
+      <p class="mt-6 max-w-xl text-lg leading-relaxed text-ink-muted text-pretty sm:text-xl dark:text-ink-muted-dark">
+        A small, native Pomodoro timer for Windows. Pick how many sessions you want, press start,
+        and the window pops back up when it's time to stop. No Electron, no account, nothing to install.
+      </p>
+
+      <div class="mt-9 flex flex-wrap items-center gap-4">
+        <a
+          href="#download"
+          class="inline-flex h-12 items-center gap-2.5 rounded-full bg-focus px-6 text-base font-semibold text-white shadow-lg shadow-focus/30 transition hover:bg-focus-deep"
+        >
+          <Icon name="download" size={18} />
+          Download for Windows
+        </a>
+        <a
+          href="https://github.com/Shimodos/PomodoroTimer"
+          class="inline-flex h-12 items-center gap-2 rounded-full px-5 text-base font-medium text-ink-muted transition hover:text-ink dark:text-ink-muted-dark dark:hover:text-ink-dark"
+        >
+          <Icon name="github" size={18} />
+          View on GitHub
+        </a>
+      </div>
+
+      <ul class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted dark:text-ink-muted-dark">
+        <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-focus" /> Free and open source</li>
+        <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-focus" /> Single exe, ~40 MB of RAM</li>
+        <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-focus" /> English, Українська, Русский</li>
+      </ul>
+    </div>
+
+    <div class="relative mx-auto w-full max-w-[420px] md:max-w-none">
+      <div class="relative ml-auto w-[300px] sm:w-[340px]">
+        <Shot light={focusLight} dark={focusDark} alt="Pomodoro main window: a focus session with 17:24 left, session 2 of 4" width={340} loading="eager" rounded="rounded-2xl" />
+        <div class="absolute -bottom-12 -left-24 hidden w-[200px] sm:block md:-left-40">
+          <Shot light={compactLight} dark={compactDark} alt="The same timer in compact mode during a short break" width={200} loading="eager" rounded="rounded-xl" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

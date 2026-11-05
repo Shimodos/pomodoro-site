@@ -1,0 +1,62 @@
+---
+import Shot from './Shot.astro';
+import editLight from '../assets/shots/edit-light.png';
+import editDark from '../assets/shots/edit-dark.png';
+import breakViewLight from '../assets/shots/break-view-light.png';
+import breakViewDark from '../assets/shots/break-view-dark.png';
+import breakLight from '../assets/shots/break-light.png';
+import breakDark from '../assets/shots/break-dark.png';
+
+const steps = [
+  {
+    n: '1',
+    title: 'Set it up on the main screen',
+    text: 'Choose how many sessions you want with the ‹ 4 sessions › stepper, or set it to ∞. Press Edit under the time to change any length in place: type the minutes or step by five. The footer shows how long the whole run takes and the clock time it ends.',
+    light: editLight,
+    dark: editDark,
+    alt: 'Editing the focus length in place: a 25 in a text box with minus and plus buttons',
+  },
+  {
+    n: '2',
+    title: 'Press start and forget about it',
+    text: 'The ring counts down in the focus color. Minimize or close the window and it keeps running in the tray, with the minutes left drawn on the icon. Peek at other tabs any time: a dot marks the live one and “Focus running · 17:23” takes you back.',
+    light: breakViewLight,
+    dark: breakViewDark,
+    alt: 'Looking at the Break tab while a focus session keeps running in the background',
+  },
+  {
+    n: '3',
+    title: 'Get pulled out when it is time',
+    text: 'When a session ends you hear a sound, get a Windows notification, and the window pops back on top of everything, even from the tray. Breaks start on their own, the next focus waits for you (both are settings). After the last session the timer says so and stops.',
+    light: breakLight,
+    dark: breakDark,
+    alt: 'A short break running: the window turned sky blue, 3:41 left, 2 of 4 sessions done',
+  },
+];
+---
+
+<section id="how" class="border-t border-line bg-card dark:border-line-dark dark:bg-card-dark">
+  <div class="mx-auto max-w-6xl px-6 py-24">
+    <div class="max-w-2xl">
+      <p class="text-sm font-semibold tracking-wide text-break-deep uppercase dark:text-break">How it works</p>
+      <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Three steps, then it runs itself</h2>
+    </div>
+
+    <div class="mt-16 space-y-24">
+      {steps.map((s, i) => (
+        <div class:list={['grid items-center gap-10 md:grid-cols-2 md:gap-16', i % 2 === 1 && 'md:[&>*:first-child]:order-2']}>
+          <div>
+            <div class="flex items-center gap-4">
+              <span class="grid size-10 place-items-center rounded-full bg-ink text-sm font-semibold text-white dark:bg-ink-dark dark:text-ink">{s.n}</span>
+              <h3 class="text-2xl font-semibold tracking-tight">{s.title}</h3>
+            </div>
+            <p class="mt-5 text-lg leading-relaxed text-ink-muted text-pretty dark:text-ink-muted-dark">{s.text}</p>
+          </div>
+          <div class="flex justify-center">
+            <Shot light={s.light} dark={s.dark} alt={s.alt} width={300} rounded="rounded-2xl" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

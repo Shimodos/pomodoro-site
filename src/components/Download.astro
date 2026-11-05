@@ -1,0 +1,104 @@
+---
+import Icon from './Icon.astro';
+
+const repo = 'https://github.com/Shimodos/PomodoroTimer';
+const latest = `${repo}/releases/latest`;
+---
+
+<section id="download" class="border-t border-line bg-ink text-white dark:border-line-dark dark:bg-card-dark">
+  <div class="mx-auto max-w-6xl px-6 py-24">
+    <div class="grid gap-12 md:grid-cols-[1fr_1fr] md:items-start">
+      <div>
+        <p class="text-sm font-semibold tracking-wide text-focus uppercase">Download</p>
+        <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Get Pomodoro for Windows</h2>
+        <p class="mt-4 text-lg text-white/70 text-pretty">
+          Windows 10 / 11, 64-bit. Unzip, run <code class="rounded bg-white/10 px-1.5 py-0.5 text-[0.9em]">Pomodoro.exe</code>, done.
+          Settings are kept in <code class="rounded bg-white/10 px-1.5 py-0.5 text-[0.9em]">%AppData%\PomodoroTimer</code>.
+        </p>
+        <p class="mt-4 text-sm text-white/50" id="dl-meta">
+          Latest version on <a href={latest} class="underline underline-offset-4 hover:text-white">GitHub Releases</a>.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/70">
+          <a href={`${repo}#readme`} class="inline-flex items-center gap-2 hover:text-white"><Icon name="github" size={16} /> Source and README</a>
+          <a href={`${repo}/releases`} class="inline-flex items-center gap-2 hover:text-white"><Icon name="layers" size={16} /> All releases and changelog</a>
+          <a href={`${repo}/issues`} class="inline-flex items-center gap-2 hover:text-white"><Icon name="shield" size={16} /> Report a problem</a>
+        </div>
+      </div>
+
+      <div class="grid gap-4">
+        <a
+          id="dl-standalone"
+          href={latest}
+          class="group flex items-center gap-5 rounded-2xl border border-white/15 bg-white/5 p-6 transition hover:border-focus hover:bg-white/10"
+        >
+          <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-focus text-white"><Icon name="download" size={22} /></span>
+          <span class="min-w-0">
+            <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span class="text-lg font-semibold tracking-tight">Self-contained</span>
+              <span class="rounded-full bg-focus/20 px-2 py-0.5 text-xs font-medium text-focus">Recommended</span>
+            </span>
+            <span class="mt-1 block text-sm text-white/60">Works on any 64-bit Windows 10 / 11, nothing else to install. <span data-size="standalone"></span></span>
+          </span>
+        </a>
+
+        <a
+          id="dl-framework"
+          href={latest}
+          class="group flex items-center gap-5 rounded-2xl border border-white/15 bg-white/5 p-6 transition hover:border-break hover:bg-white/10"
+        >
+          <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-white/10 text-white"><Icon name="download" size={22} /></span>
+          <span class="min-w-0">
+            <span class="text-lg font-semibold tracking-tight">Framework-dependent</span>
+            <span class="mt-1 block text-sm text-white/60">Under 1 MB. Needs the .NET 8 Desktop Runtime installed. <span data-size="framework"></span></span>
+          </span>
+        </a>
+
+        <p class="text-xs text-white/40">
+          Unsigned build: on first run Windows SmartScreen may ask you to confirm. Choose “More info”, then “Run anyway”, or build from source.
+          The small build needs the <a href="https://dotnet.microsoft.com/download/dotnet/8.0" class="underline underline-offset-2 hover:text-white/80">.NET 8 Desktop Runtime</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Point the buttons at the exact assets of the latest release. Falls back to the releases page.
+  type Asset = { name: string; browser_download_url: string; size: number };
+  type Release = { tag_name: string; published_at: string; assets: Asset[] };
+
+  const mb = (bytes: number) => `${(bytes / 1_048_576).toFixed(bytes > 10_485_760 ? 0 : 1)} MB`;
+
+  async function fillLatest() {
+    try {
+      const res = await fetch('https://api.github.com/repos/Shimodos/PomodoroTimer/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!res.ok) return;
+      const rel = (await res.json()) as Release;
+
+      const standalone = rel.assets.find((a) => /win-x64\.zip$/i.test(a.name));
+      const framework = rel.assets.find((a) => /framework\.zip$/i.test(a.name));
+
+      const set = (id: string, asset: Asset | undefined, key: string) => {
+        const link = document.getElementById(id) as HTMLAnchorElement | null;
+        const size = document.querySelector<HTMLElement>(`[data-size="${key}"]`);
+        if (!link || !asset) return;
+        link.href = asset.browser_download_url;
+        if (size) size.textContent = mb(asset.size);
+      };
+      set('dl-standalone', standalone, 'standalone');
+      set('dl-framework', framework, 'framework');
+
+      const meta = document.getElementById('dl-meta');
+      if (meta) {
+        const date = new Date(rel.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        meta.innerHTML = `Latest version <strong class="text-white/80">${rel.tag_name}</strong>, released ${date}. <a href="https://github.com/Shimodos/PomodoroTimer/releases/tag/${rel.tag_name}" class="underline underline-offset-4 hover:text-white">Release notes</a>.`;
+      }
+    } catch {
+      /* offline or rate-limited: the links already point at the releases page */
+    }
+  }
+
+  fillLatest();
+</script>
