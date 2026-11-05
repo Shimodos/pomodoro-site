@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Renders the promo clip: the real app is loaded in-process, captured in a few states
+    and composed frame by frame onto a gradient background; ffmpeg encodes the result.
+    Usage: dotnet run -c Release - -  <out.mp4> [-ffmpeg <path>] [-frames <dir>]
+    The app project is referenced from the sibling PomodoroTimer repository.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Promo</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\PomodoroTimer\PomodoroTimer.csproj" />
+  </ItemGroup>
+
+</Project>

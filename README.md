@@ -43,6 +43,20 @@ move ..\..\src\assets\shots\og.png ..\..\public\og.png
 
 Requires the .NET 8 SDK and the app repository checked out next to this one.
 
+## Promo clip
+
+`public/promo.mp4` (1080×1350, 30 fps, ~9 s, no sound) is rendered the same way by
+[`tools/promo`](tools/promo): the app is captured in a few states (focus 00:04 → 00:01, the break
+auto-starting at 05:00, compact mode) and every frame is composed offline — gradient backdrop, shadow,
+a slow push-in, a drawn cursor that switches the window to compact mode. ffmpeg encodes the frames.
+
+```bash
+cd tools/promo
+dotnet run -c Release -- ../../public/promo.mp4 -ffmpeg "C:\path\to\ffmpeg.exe"
+```
+
+`-frames <dir>` additionally dumps a PNG every half second for checking. Needs ffmpeg (`winget install Gyan.FFmpeg`).
+
 ## License
 
 MIT
