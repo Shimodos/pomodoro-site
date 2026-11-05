@@ -2,60 +2,91 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Path = System.IO.Path;
 using PomodoroTimer.Services;
 using PomodoroTimer.ViewModels;
 using PomodoroTimer.Views;
+using Path = System.IO.Path;
 
 namespace Promo;
 
+/// <summary>A window captured at 2x, plus its logical size.</summary>
+internal sealed record Shot(BitmapSource Image, double W, double H);
+
+/// <summary>Everything one frame of a clip shows: a window (optionally cross-fading into a second one) and a cursor.</summary>
+internal sealed class Frame
+{
+    public Shot A = null!;
+    public Rect RectA;
+    public Shot? B;
+    public Rect RectB;
+    public double Morph;      // 0 = A only, 1 = B only
+    public double Pop = 1;    // extra scale of the window (the "pop" when a phase ends)
+    public Point? Cursor;     // frame pixels
+    public bool Pressed;
+}
+
+internal sealed record Clip(string Name, double Duration, double Zoom, Func<double, Frame> At);
+
 /// <summary>
-/// Renders the promo clip. The app has no continuous animations of its own (the clock steps
-/// once a second, the ring once per tick), so the window is captured in a handful of states
-/// and every frame of the clip is composed offline: gradient backdrop, shadow, a slow camera
-/// push-in, a drawn cursor that switches the window to compact mode. ffmpeg encodes the frames
-/// streamed through stdin.
+/// Renders the promo clips. The app has no continuous animations of its own (the clock steps
+/// once a second, the ring once per tick), so the windows are captured in a handful of states
+/// and every frame is composed offline: gradient backdrop, shadow, a slow camera push-in, a
+/// drawn cursor. ffmpeg encodes the frames streamed through stdin.
 /// </summary>
 internal static class Program
 {
     // Output frame: 4:5 portrait like the reference clip, H.264-friendly even size.
     private const int W = 1080, H = 1350, Fps = 30;
-    private const double Duration = 9.4;
 
-    // The window is captured at 2x and placed 1:1 at camera scale 1, so it stays crisp.
-    private const double Shot = 2;
-    private const double BigW = 340, BigH = 540, CompactW = 250, CompactH = 300;
-
-    // Timeline (seconds). The clock changes at x.9 so no change falls inside the morph.
-    private const double BreakAt = 3.9;                       // focus ends, break starts
-    private const double CursorIn = 4.6, CursorAt = 5.7;        // cursor flies to the compact button
-    private const double PressAt = 5.85, PressEnd = 6.0;        // click
-    private const double MorphStart = 6.0, MorphEnd = 6.5;      // window turns compact
-    private const double CursorOut = 6.8, CursorGone = 7.6;     // cursor leaves
+    // Windows are captured at 2x; the main window is placed 1:1 at camera scale 1, so it stays crisp.
+    private const double ShotScale = 2;
+    private const double ClickHold = 0.15;
 
     [STAThread]
     private static int Main(string[] args)
     {
         string outFile = "promo.mp4";
+        string clipName = "main";
         string ffmpeg = "ffmpeg";
         string? framesDir = null;
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i])
             {
+                case "-clip": clipName = args[++i]; break;
                 case "-ffmpeg": ffmpeg = args[++i]; break;
                 case "-frames": framesDir = args[++i]; break;
                 default: outFile = args[i]; break;
             }
         }
 
+        var (vm, main) = Boot();
+        var clip = clipName switch
+        {
+            "main" => MainClip(vm, main),
+            "settings" => SettingsClip(vm, main),
+            _ => throw new ArgumentException($"unknown clip '{clipName}' (main | settings)"),
+        };
+        vm.Dispose();
+
+        Render(clip, outFile, ffmpeg, framesDir);
+        Console.WriteLine($"done -> {Path.GetFullPath(outFile)}");
+        return 0;
+    }
+
+    // ------------------------------------------------------------------ the app
+
+    private static (MainViewModel vm, MainWindow main) Boot()
+    {
         // Keep the real user settings untouched: point the app at a scratch folder.
         string data = Path.Combine(Path.GetTempPath(), "pomodoro-promo");
         Directory.CreateDirectory(data);
@@ -75,11 +106,17 @@ internal static class Program
         s.Theme = "Light";
         s.Accent = "#FF6B6B";
         s.BreakAccent = "auto";
+        s.WorkMinutes = 25;
+        s.ShortBreakMinutes = 5;
+        s.LongBreakMinutes = 15;
+        s.CyclesBeforeLongBreak = 4;
         s.LimitSessions = true;
         s.TotalSessions = 4;
         s.AutoStartBreaks = true;
+        s.AutoStartWork = false;
         s.CompactMode = false;
         s.AlwaysOnTop = false;
+        s.StartWithWindows = false;
         s.WindowLeft = null;
         s.WindowTop = null;
         // The phase-end side effects are not wanted while rendering: no sound, no toast,
@@ -100,25 +137,19 @@ internal static class Program
         };
         main.Show();
         Pump(400);
-
-        var shots = CaptureShots(vm, main, out Point compactButton);
-        vm.Dispose();
-
-        Render(shots, compactButton, outFile, ffmpeg, framesDir);
-        Console.WriteLine($"done -> {Path.GetFullPath(outFile)}");
-        return 0;
+        return (vm, main);
     }
 
-    // ------------------------------------------------------------------ capturing the app
+    // ------------------------------------------------------------------ clip 1: the timer
 
     /// <summary>
-    /// Focus at 00:04 … 00:01, then the countdown completes by itself and the break auto-starts
-    /// (05:00 …), then compact mode. Keys: w4..w1, b300.., c298..
+    /// Focus at 00:04 … 00:01, the countdown completes by itself and the break auto-starts in its
+    /// own color, then the cursor switches the window to compact mode.
     /// </summary>
-    private static Dictionary<string, BitmapSource> CaptureShots(MainViewModel vm, MainWindow main, out Point compactButton)
+    private static Clip MainClip(MainViewModel vm, MainWindow main)
     {
-        var shots = new Dictionary<string, BitmapSource>();
         var engine = GetEngine(vm);
+        var shots = new Dictionary<string, Shot>();
 
         vm.ToggleCommand.Execute(null); // start focus, session 2 of 4
         for (int sec = 4; sec >= 1; sec--)
@@ -127,8 +158,7 @@ internal static class Program
             Pump(250);
             shots[$"w{sec}"] = Capture(main);
         }
-
-        compactButton = CenterOf(main, FindButton(main, main.Resources["CompactButton"] as Style));
+        var compactButton = CenterOf(main, Descendants<Button>(main).First(b => b.Style == main.Resources["CompactButton"]));
 
         // Let the engine finish the focus on its own tick: Advance -> short break -> auto-start.
         SetState(engine, completed: 1, remaining: TimeSpan.FromSeconds(-0.5));
@@ -152,29 +182,220 @@ internal static class Program
             shots[$"c{sec}"] = Capture(main);
         }
 
-        return shots;
+        // Timeline (seconds). The clock changes at x.9 so no change falls inside the morph.
+        const double breakAt = 3.9, pressAt = 5.85, morphStart = 6.0, morphEnd = 6.5;
+        var big = Centered(340, 540, ShotScale);
+        var compact = Centered(250, 300, ShotScale);
+        var target = ToFrame(big, ShotScale, compactButton);
+        var cursor = new List<(double t, Point p)>
+        {
+            (4.6, new Point(W + 80, H + 80)),
+            (5.7, target),
+            (6.8, target),
+            (7.6, new Point(W + 120, H * 0.78)),
+        };
+
+        return new Clip("main", 9.4, 1.07, t =>
+        {
+            string bigKey = t < 0.9 ? "w4" : t < 1.9 ? "w3" : t < 2.9 ? "w2" : t < 3.9 ? "w1" : t < 4.9 ? "b300" : t < 5.9 ? "b299" : "b298";
+            string compactKey = t < 6.9 ? "c298" : t < 7.9 ? "c297" : t < 8.9 ? "c296" : "c295";
+            return new Frame
+            {
+                A = shots[bigKey], RectA = big,
+                B = shots[compactKey], RectB = compact,
+                Morph = EaseInOut(Clamp01((t - morphStart) / (morphEnd - morphStart))),
+                Pop = 1 + 0.035 * Math.Sin(Math.PI * Clamp01((t - breakAt) / 0.45)),
+                Cursor = CursorAt(cursor, t),
+                Pressed = t >= pressAt && t < pressAt + ClickHold,
+            };
+        });
     }
 
-    /// <summary>The button carrying a given style (the compact toggle has no name in the XAML).</summary>
-    private static Button FindButton(DependencyObject root, Style? style) =>
-        FindButtonOrNull(root, style ?? throw new InvalidOperationException("style not found"))
-        ?? throw new InvalidOperationException("compact button not found");
+    // ------------------------------------------------------------------ clip 2: the settings
 
-    private static Button? FindButtonOrNull(DependencyObject node, Style style)
+    /// <summary>
+    /// A walk through the settings dialog: the focus slider is dragged, the Sound page is shown,
+    /// the dark theme and a new accent are picked (live preview), "always on top" is switched on,
+    /// Save closes the dialog and the main window appears in its new look.
+    /// </summary>
+    private static Clip SettingsClip(MainViewModel vm, MainWindow main)
     {
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        var engine = GetEngine(vm);
+        var settings = new SettingsWindow(vm)
         {
-            var child = VisualTreeHelper.GetChild(node, i);
-            if (child is Button b && b.Style == style) return b;
-            var found = FindButtonOrNull(child, style);
-            if (found != null) return found;
+            Owner = main,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -20000,
+            Top = -20000,
+            ShowInTaskbar = false,
+        };
+        settings.Show();
+        Pump(500);
+        var draft = (SettingsViewModel)settings.DataContext;
+        // Boot switched these off to keep the render quiet; the dialog should show the real defaults.
+        draft.SoundEnabled = true;
+        draft.NotificationsEnabled = true;
+        draft.ShowOnPhaseEnd = true;
+
+        RadioButton Nav(string name) => (RadioButton)settings.FindName(name);
+        var pNavSound = CenterOf(settings, Nav("NavSound"));
+        var pNavLook = CenterOf(settings, Nav("NavLook"));
+        var pNavSystem = CenterOf(settings, Nav("NavSystem"));
+        var pSave = CenterOf(settings, (Button)settings.FindName("SaveButton"));
+
+        // ---- Timer page: drag the focus slider 25 -> 30
+        var slider = Descendants<Slider>(settings).First(x => x.IsVisible);
+        var thumb = Descendants<Thumb>(slider).First();
+        var timer = new List<(Shot shot, Point thumb)>();
+        for (int m = 25; m <= 30; m++)
+        {
+            draft.WorkMinutes = m;
+            Pump(150);
+            settings.UpdateLayout();
+            timer.Add((Capture(settings), CenterOf(settings, thumb)));
         }
-        return null;
+
+        // ---- Sound page
+        Nav("NavSound").IsChecked = true;
+        Pump(300);
+        var sound = Capture(settings);
+
+        // ---- Appearance: dark theme, then a violet accent (both preview live)
+        Nav("NavLook").IsChecked = true;
+        Pump(300);
+        var lookLight = Capture(settings);
+        var darkTab = Descendants<RadioButton>(settings).Where(r => r.GroupName == "Theme").ElementAt(1);
+        var pDark = CenterOf(settings, darkTab);
+        var accentList = Descendants<ListBox>(settings).First(l => l.IsVisible);
+        const string accent = "#B07CFF";
+        int accentIndex = Array.IndexOf(ThemeManager.Palette, accent);
+        var swatch = (ListBoxItem)accentList.ItemContainerGenerator.ContainerFromIndex(accentIndex);
+        var pSwatch = CenterOf(settings, swatch);
+        draft.Theme = "Dark";
+        Pump(400);
+        var lookDark = Capture(settings);
+        draft.Accent = accent;
+        Pump(400);
+        var lookAccent = Capture(settings);
+
+        // ---- System: switch "always on top" on
+        Nav("NavSystem").IsChecked = true;
+        Pump(300);
+        var system = Capture(settings);
+        var onTop = Descendants<CheckBox>(settings).Where(c => c.IsVisible).ElementAt(2);
+        // aim at the switch itself, which sits at the right edge of the row
+        var pOnTop = onTop.TransformToAncestor(settings).Transform(new Point(onTop.ActualWidth - 22, onTop.ActualHeight / 2));
+        draft.AlwaysOnTop = true;
+        Pump(300);
+        var systemOn = Capture(settings);
+
+        // ---- Save: what Save_Click does, minus the dialog plumbing; then the main window in its new look
+        SettingsService.Replace(draft.Draft);
+        ThemeManager.Apply(draft.Draft);
+        settings.Close();
+        vm.RefreshView();
+        vm.ToggleCommand.Execute(null);
+        SetState(engine, completed: 0, remaining: TimeSpan.FromSeconds(29 * 60 + 12));
+        Pump(400);
+        var mainDark = Capture(main);
+
+        // Timeline (seconds)
+        const double drawScale = 1.5;
+        const double dragStart = 1.2, dragEnd = 2.0;
+        const double clickSound = 3.4, clickLook = 5.0, clickDark = 5.8, clickSwatch = 7.0, clickSystem = 8.4, clickOnTop = 9.3, clickSave = 10.5;
+        const double morphStart = 10.6, morphEnd = 11.1;
+        var dialog = Centered(600, 680, drawScale);
+        var window = Centered(340, 540, ShotScale);
+        Point F(Point p) => ToFrame(dialog, drawScale, p);
+        var cursor = new List<(double t, Point p)>
+        {
+            (0.3, new Point(W + 80, H + 80)),
+            (1.1, F(timer[0].thumb)),
+            (dragStart, F(timer[0].thumb)),
+            (dragEnd, F(timer[^1].thumb)),
+            (2.8, F(timer[^1].thumb)),
+            (clickSound, F(pNavSound)),
+            (4.4, F(pNavSound)),
+            (clickLook, F(pNavLook)),
+            (5.3, F(pNavLook)),
+            (clickDark, F(pDark)),
+            (6.4, F(pDark)),
+            (clickSwatch, F(pSwatch)),
+            (7.8, F(pSwatch)),
+            (clickSystem, F(pNavSystem)),
+            (8.7, F(pNavSystem)),
+            (clickOnTop, F(pOnTop)),
+            (9.9, F(pOnTop)),
+            (clickSave, F(pSave)),
+            (10.6, F(pSave)),
+            (11.3, new Point(W + 120, H * 0.85)),
+        };
+        var clicks = new[] { clickSound, clickLook, clickDark, clickSwatch, clickSystem, clickOnTop, clickSave };
+
+        return new Clip("settings", 12.6, 1.05, t =>
+        {
+            Shot page;
+            if (t < clickSound + 0.05)
+            {
+                double p = EaseInOut(Clamp01((t - dragStart) / (dragEnd - dragStart)));
+                page = timer[(int)Math.Round(p * (timer.Count - 1))].shot;
+            }
+            else if (t < clickLook + 0.05) page = sound;
+            else if (t < clickDark + 0.05) page = lookLight;
+            else if (t < clickSwatch + 0.05) page = lookDark;
+            else if (t < clickSystem + 0.05) page = lookAccent;
+            else if (t < clickOnTop + 0.05) page = system;
+            else page = systemOn;
+
+            return new Frame
+            {
+                A = page, RectA = dialog,
+                B = mainDark, RectB = window,
+                Morph = EaseInOut(Clamp01((t - morphStart) / (morphEnd - morphStart))),
+                Cursor = CursorAt(cursor, t),
+                Pressed = clicks.Any(c => t >= c && t < c + ClickHold),
+            };
+        });
+    }
+
+    // ------------------------------------------------------------------ capturing
+
+    /// <summary>Renders the window at 2x, the same way the site screenshots are made.</summary>
+    private static Shot Capture(Window window)
+    {
+        window.UpdateLayout();
+        Pump(100);
+        int w = (int)Math.Round(window.ActualWidth * ShotScale);
+        int h = (int)Math.Round(window.ActualHeight * ShotScale);
+        var rtb = new RenderTargetBitmap(w, h, 96 * ShotScale, 96 * ShotScale, PixelFormats.Pbgra32);
+
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+        {
+            var rect = new Rect(0, 0, window.ActualWidth, window.ActualHeight);
+            dc.DrawRectangle(window.Background, null, rect);
+            var brush = new VisualBrush(window) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
+            dc.DrawRectangle(brush, null, rect);
+        }
+        rtb.Render(dv);
+        rtb.Freeze();
+        Console.WriteLine($"captured {w}x{h}");
+        return new Shot(rtb, window.ActualWidth, window.ActualHeight);
     }
 
     /// <summary>Center of an element in window coordinates (logical pixels).</summary>
     private static Point CenterOf(Window window, FrameworkElement element) =>
         element.TransformToAncestor(window).Transform(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject node) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            var child = VisualTreeHelper.GetChild(node, i);
+            if (child is T hit) yield return hit;
+            foreach (var deeper in Descendants<T>(child)) yield return deeper;
+        }
+    }
 
     private static TimerEngine GetEngine(MainViewModel vm)
     {
@@ -192,29 +413,6 @@ internal static class Program
         typeof(TimerEngine).GetField("_remaining", f)!.SetValue(engine, remaining);
     }
 
-    /// <summary>Renders the window at 2x, the same way the site screenshots are made.</summary>
-    private static BitmapSource Capture(Window window)
-    {
-        window.UpdateLayout();
-        Pump(100);
-        int w = (int)Math.Round(window.ActualWidth * Shot);
-        int h = (int)Math.Round(window.ActualHeight * Shot);
-        var rtb = new RenderTargetBitmap(w, h, 96 * Shot, 96 * Shot, PixelFormats.Pbgra32);
-
-        var dv = new DrawingVisual();
-        using (var dc = dv.RenderOpen())
-        {
-            var rect = new Rect(0, 0, window.ActualWidth, window.ActualHeight);
-            dc.DrawRectangle(window.Background, null, rect);
-            var brush = new VisualBrush(window) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
-            dc.DrawRectangle(brush, null, rect);
-        }
-        rtb.Render(dv);
-        rtb.Freeze();
-        Console.WriteLine($"captured {w}x{h}");
-        return rtb;
-    }
-
     /// <summary>Lets bindings, layout and the 200 ms engine tick settle.</summary>
     private static void Pump(int ms)
     {
@@ -225,9 +423,9 @@ internal static class Program
         Dispatcher.PushFrame(frame);
     }
 
-    // ------------------------------------------------------------------ composing the clip
+    // ------------------------------------------------------------------ composing
 
-    private static void Render(Dictionary<string, BitmapSource> shots, Point compactButton, string outFile, string ffmpeg, string? framesDir)
+    private static void Render(Clip clip, string outFile, string ffmpeg, string? framesDir)
     {
         if (framesDir != null) Directory.CreateDirectory(framesDir);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outFile))!);
@@ -248,14 +446,14 @@ internal static class Program
 
         var rtb = new RenderTargetBitmap(W, H, 96, 96, PixelFormats.Pbgra32);
         var pixels = new byte[W * H * 4];
-        int frames = (int)Math.Round(Duration * Fps);
-        var cursorGeometry = Geometry.Parse("M 0,0 L 0,17 L 4.2,13.2 L 7,19.5 L 9.6,18.4 L 6.9,12.2 L 12.4,12.2 Z");
-        cursorGeometry.Freeze();
+        int frames = (int)Math.Round(clip.Duration * Fps);
+        var backdrop = Backdrop();
 
         for (int i = 0; i < frames; i++)
         {
             double t = i / (double)Fps;
-            var scene = BuildScene(shots, compactButton, cursorGeometry, t);
+            double zoom = 1 + (clip.Zoom - 1) * SmoothStep(t / clip.Duration);
+            var scene = BuildScene(clip.At(t), zoom, backdrop);
             scene.Measure(new Size(W, H));
             scene.Arrange(new Rect(0, 0, W, H));
             rtb.Clear();
@@ -263,7 +461,7 @@ internal static class Program
             rtb.CopyPixels(pixels, W * 4, 0);
             stdin.Write(pixels, 0, pixels.Length);
 
-            if (framesDir != null && i % (Fps / 2) == 0) SavePng(rtb, Path.Combine(framesDir, $"f{i:0000}_{t:0.0}s.png"));
+            if (framesDir != null && i % (Fps / 2) == 0) SavePng(rtb, Path.Combine(framesDir, $"{clip.Name}_{i:0000}_{t:0.0}s.png"));
             if (i % Fps == 0) Console.WriteLine($"frame {i}/{frames}");
         }
 
@@ -274,12 +472,13 @@ internal static class Program
         Console.WriteLine($"{frames} frames -> {outFile}");
     }
 
-    /// <summary>One frame of the clip at time t, as a layout tree ready to render.</summary>
-    private static FrameworkElement BuildScene(Dictionary<string, BitmapSource> shots, Point compactButton, Geometry cursorGeometry, double t)
+    private static readonly Geometry CursorGeometry = Frozen(Geometry.Parse("M 0,0 L 0,17 L 4.2,13.2 L 7,19.5 L 9.6,18.4 L 6.9,12.2 L 12.4,12.2 Z"));
+
+    /// <summary>One frame as a layout tree ready to render.</summary>
+    private static FrameworkElement BuildScene(Frame f, double zoom, Brush backdrop)
     {
-        var frame = new Canvas { Width = W, Height = H, Background = Backdrop() };
+        var frame = new Canvas { Width = W, Height = H, Background = backdrop };
         // Everything the camera sees sits in "world"; the slow push-in scales it about the center.
-        double zoom = 1 + 0.07 * SmoothStep(t / Duration);
         var world = new Canvas
         {
             Width = W, Height = H,
@@ -288,54 +487,26 @@ internal static class Program
         };
         frame.Children.Add(world);
 
-        // ---- the window
-        var big = new Rect((W - BigW * Shot) / 2, (H - BigH * Shot) / 2, BigW * Shot, BigH * Shot);
-        var compact = new Rect((W - CompactW * Shot) / 2, (H - CompactH * Shot) / 2, CompactW * Shot, CompactH * Shot);
-        double morph = EaseInOut(Clamp01((t - MorphStart) / (MorphEnd - MorphStart)));
-        var rect = Lerp(big, compact, morph);
-
-        // A small bounce when the phase ends: the window "pops" like it does on a real desktop.
-        double pop = 1 + 0.035 * Math.Sin(Math.PI * Clamp01((t - BreakAt) / 0.45));
-
+        var rect = Lerp(f.RectA, f.RectB, f.Morph);
         var window = new Grid
         {
             Width = rect.Width, Height = rect.Height,
             RenderTransformOrigin = new Point(0.5, 0.5),
-            RenderTransform = new ScaleTransform(pop, pop),
+            RenderTransform = new ScaleTransform(f.Pop, f.Pop),
         };
         Canvas.SetLeft(window, rect.X);
         Canvas.SetTop(window, rect.Y);
-
-        string bigKey = t < 0.9 ? "w4" : t < 1.9 ? "w3" : t < 2.9 ? "w2" : t < 3.9 ? "w1" : t < 4.9 ? "b300" : t < 5.9 ? "b299" : "b298";
-        string compactKey = t < 6.9 ? "c298" : t < 7.9 ? "c297" : t < 8.9 ? "c296" : "c295";
-
-        double radius = 8 * Shot; // Windows 11 corner radius at 2x
-        if (morph < 1) window.Children.Add(WindowPane(shots[bigKey], radius, 1 - morph, shadow: true));
-        if (morph > 0) window.Children.Add(WindowPane(shots[compactKey], radius, morph, shadow: morph >= 1));
+        double radius = 8 * rect.Width / (f.Morph < 0.5 ? f.A.W : f.B!.W); // Windows 11 corner radius at the drawn scale
+        if (f.Morph < 1) window.Children.Add(WindowPane(f.A.Image, radius, 1 - f.Morph, shadow: true));
+        if (f.Morph > 0) window.Children.Add(WindowPane(f.B!.Image, radius, f.Morph, shadow: f.Morph >= 1));
         world.Children.Add(window);
 
-        // ---- the cursor: aims at the compact button of the big window and stays put while the window shrinks
-        var target = new Point(big.X + compactButton.X * Shot, big.Y + compactButton.Y * Shot);
-        var start = new Point(W + 80, H + 80);
-        var exit = new Point(W + 120, H * 0.78);
-        Point? pos = null;
-        if (t >= CursorIn && t < CursorOut)
+        if (f.Cursor is Point c)
         {
-            double p = EaseInOut(Clamp01((t - CursorIn) / (CursorAt - CursorIn)));
-            pos = new Point(Lerp(start.X, target.X, p), Lerp(start.Y, target.Y, p) - 90 * Math.Sin(Math.PI * p));
-        }
-        else if (t >= CursorOut && t < CursorGone)
-        {
-            double p = EaseIn(Clamp01((t - CursorOut) / (CursorGone - CursorOut)));
-            pos = new Point(Lerp(target.X, exit.X, p), Lerp(target.Y, exit.Y, p));
-        }
-        if (pos is Point c)
-        {
-            double press = t >= PressAt && t < PressEnd ? 0.82 : 1;
-            double size = 2.3 * press;
+            double size = 2.3 * (f.Pressed ? 0.82 : 1);
             var cursor = new System.Windows.Shapes.Path
             {
-                Data = cursorGeometry,
+                Data = CursorGeometry,
                 Fill = Brushes.White,
                 Stroke = Brushes.Black,
                 StrokeThickness = 1.1,
@@ -370,7 +541,7 @@ internal static class Program
         return pane;
     }
 
-    /// <summary>Warm-to-cool gradient with two soft blobs in the app's accent colors.</summary>
+    /// <summary>Warm-to-cool gradient with soft blobs in the app's accent colors.</summary>
     private static Brush Backdrop()
     {
         var group = new DrawingGroup();
@@ -415,13 +586,36 @@ internal static class Program
         encoder.Save(stream);
     }
 
-    // ------------------------------------------------------------------ easing helpers
+    // ------------------------------------------------------------------ geometry and easing
 
+    /// <summary>A window of the given logical size drawn at a scale, centered in the frame.</summary>
+    private static Rect Centered(double w, double h, double scale) =>
+        new((W - w * scale) / 2, (H - h * scale) / 2, w * scale, h * scale);
+
+    /// <summary>A point in window coordinates mapped into the frame, for a window drawn in rect at a scale.</summary>
+    private static Point ToFrame(Rect rect, double scale, Point p) => new(rect.X + p.X * scale, rect.Y + p.Y * scale);
+
+    /// <summary>Cursor position at time t: eased between keyframes, with a small arc on every move; null outside them.</summary>
+    private static Point? CursorAt(List<(double t, Point p)> keys, double t)
+    {
+        if (t < keys[0].t || t >= keys[^1].t) return null;
+        for (int i = 0; i < keys.Count - 1; i++)
+        {
+            var (t0, p0) = keys[i];
+            var (t1, p1) = keys[i + 1];
+            if (t < t0 || t >= t1) continue;
+            double p = EaseInOut((t - t0) / (t1 - t0));
+            double arc = p0 == p1 ? 0 : Math.Min(40, (p1 - p0).Length * 0.08) * Math.Sin(Math.PI * p);
+            return new Point(Lerp(p0.X, p1.X, p), Lerp(p0.Y, p1.Y, p) - arc);
+        }
+        return null;
+    }
+
+    private static T Frozen<T>(T freezable) where T : Freezable { freezable.Freeze(); return freezable; }
     private static double Clamp01(double x) => x < 0 ? 0 : x > 1 ? 1 : x;
     private static double Lerp(double a, double b, double p) => a + (b - a) * p;
     private static Rect Lerp(Rect a, Rect b, double p) =>
         new(Lerp(a.X, b.X, p), Lerp(a.Y, b.Y, p), Lerp(a.Width, b.Width, p), Lerp(a.Height, b.Height, p));
     private static double SmoothStep(double p) { p = Clamp01(p); return p * p * (3 - 2 * p); }
     private static double EaseInOut(double p) => p < 0.5 ? 4 * p * p * p : 1 - Math.Pow(-2 * p + 2, 3) / 2;
-    private static double EaseIn(double p) => p * p * p;
 }

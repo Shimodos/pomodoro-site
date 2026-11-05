@@ -43,16 +43,22 @@ move ..\..\src\assets\shots\og.png ..\..\public\og.png
 
 Requires the .NET 8 SDK and the app repository checked out next to this one.
 
-## Promo clip
+## Promo clips
 
-`public/promo.mp4` (1080×1350, 30 fps, ~9 s, no sound) is rendered the same way by
-[`tools/promo`](tools/promo): the app is captured in a few states (focus 00:04 → 00:01, the break
-auto-starting at 05:00, compact mode) and every frame is composed offline — gradient backdrop, shadow,
-a slow push-in, a drawn cursor that switches the window to compact mode. ffmpeg encodes the frames.
+The two clips in `public/` (1080×1350, 30 fps, no sound) are rendered the same way by
+[`tools/promo`](tools/promo): the app is captured in a few states and every frame is composed
+offline — gradient backdrop, shadow, a slow push-in, a drawn cursor. ffmpeg encodes the frames.
+
+- `promo.mp4` (~9 s): focus 00:04 → 00:01, the break auto-starts at 05:00 in its own color, the cursor
+  switches the window to compact mode.
+- `promo-settings.mp4` (~13 s): the settings dialog — the focus slider is dragged, the Sound page, the dark
+  theme and a violet accent are picked (live preview), "keep window on top" is switched on, Save closes the
+  dialog and the main window appears in its new look.
 
 ```bash
 cd tools/promo
-dotnet run -c Release -- ../../public/promo.mp4 -ffmpeg "C:\path\to\ffmpeg.exe"
+dotnet run -c Release -- ../../public/promo.mp4 -clip main -ffmpeg "C:\path\to\ffmpeg.exe"
+dotnet run -c Release -- ../../public/promo-settings.mp4 -clip settings -ffmpeg "C:\path\to\ffmpeg.exe"
 ```
 
 `-frames <dir>` additionally dumps a PNG every half second for checking. Needs ffmpeg (`winget install Gyan.FFmpeg`).
