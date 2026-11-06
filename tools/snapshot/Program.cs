@@ -139,6 +139,13 @@ internal static class Program
         if (settings.DataContext is SettingsViewModel draft) draft.Theme = "Dark"; // live preview, like the real dialog
         Pump(400);
         Save(settings, Path.Combine(outDir, "settings-look-dark.png"));
+        // the other pages in the dark theme, for the site's dark mode
+        foreach (var (nav, name) in new[] { ("NavTimer", "timer"), ("NavSound", "sound"), ("NavSystem", "system") })
+        {
+            if (settings.FindName(nav) is RadioButton rb) rb.IsChecked = true;
+            Pump(300);
+            Save(settings, Path.Combine(outDir, $"settings-{name}-dark.png"));
+        }
         settings.Close();
 
         vm.Dispose();

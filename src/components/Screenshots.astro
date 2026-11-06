@@ -1,16 +1,19 @@
 ---
 import Shot from './Shot.astro';
-import timer from '../assets/shots/settings-timer-light.png';
-import sound from '../assets/shots/settings-sound-light.png';
+import timerLight from '../assets/shots/settings-timer-light.png';
+import timerDark from '../assets/shots/settings-timer-dark.png';
+import soundLight from '../assets/shots/settings-sound-light.png';
+import soundDark from '../assets/shots/settings-sound-dark.png';
 import lookLight from '../assets/shots/settings-look-light.png';
 import lookDark from '../assets/shots/settings-look-dark.png';
-import system from '../assets/shots/settings-system-light.png';
+import systemLight from '../assets/shots/settings-system-light.png';
+import systemDark from '../assets/shots/settings-system-dark.png';
 
 const pages = [
-  { light: timer, title: 'Timer', text: 'Lengths, sessions before a long break, auto-start rules, the session limit and the planned end time.' },
-  { light: sound, title: 'Sound', text: 'A sound for the end of focus and another for the end of a break, your own files, volume with preview.' },
+  { light: timerLight, dark: timerDark, title: 'Timer', text: 'Lengths, sessions before a long break, auto-start rules, the session limit and the planned end time.' },
+  { light: soundLight, dark: soundDark, title: 'Sound', text: 'A sound for the end of focus and another for the end of a break, your own files, volume with preview.' },
   { light: lookLight, dark: lookDark, title: 'Appearance', text: 'Theme, focus color, break color and language. Every change shows immediately, Cancel puts it back.' },
-  { light: system, title: 'System', text: 'Notifications, pop-up on phase end, always on top, tray behaviour, start with Windows.' },
+  { light: systemLight, dark: systemDark, title: 'System', text: 'Notifications, pop-up on phase end, always on top, tray behaviour, start with Windows.' },
 ];
 ---
 
