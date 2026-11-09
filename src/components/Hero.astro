@@ -18,7 +18,8 @@ import compactDark from '../assets/shots/compact-dark.png';
     <div>
       <p class="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1 text-xs font-medium text-ink-muted dark:border-line-dark dark:bg-card-dark dark:text-ink-muted-dark">
         <Icon name="windows" size={14} class="text-break" />
-        Native app for Windows 10 / 11
+        <Icon name="apple" size={14} class="text-break" />
+        Native apps for Windows and macOS
       </p>
 
       <h1 class="text-5xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
@@ -26,7 +27,7 @@ import compactDark from '../assets/shots/compact-dark.png';
       </h1>
 
       <p class="mt-6 max-w-xl text-lg leading-relaxed text-ink-muted text-pretty sm:text-xl dark:text-ink-muted-dark">
-        A small, native Pomodoro timer for Windows. Pick how many sessions you want, press start,
+        A small, native Pomodoro timer for Windows and Mac. Pick how many sessions you want, press start,
         and the window pops back up when it's time to stop. No Electron, no account, nothing to install.
       </p>
 
@@ -35,8 +36,15 @@ import compactDark from '../assets/shots/compact-dark.png';
           href="#download"
           class="inline-flex h-12 items-center gap-2.5 rounded-full bg-focus px-6 text-base font-semibold text-white shadow-lg shadow-focus/30 transition hover:bg-focus-deep"
         >
-          <Icon name="download" size={18} />
+          <Icon name="windows" size={18} />
           Download for Windows
+        </a>
+        <a
+          href="#download"
+          class="inline-flex h-12 items-center gap-2.5 rounded-full bg-ink px-6 text-base font-semibold text-white transition hover:bg-ink/85 dark:bg-white dark:text-ink dark:hover:bg-white/90"
+        >
+          <Icon name="apple" size={18} />
+          Download for Mac
         </a>
         <a
           href="https://github.com/Shimodos/PomodoroTimer"
@@ -49,7 +57,7 @@ import compactDark from '../assets/shots/compact-dark.png';
 
       <ul class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted dark:text-ink-muted-dark">
         <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-focus" /> Free and open source</li>
-        <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-focus" /> Single exe, ~40 MB of RAM</li>
+        <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-focus" /> Native on both, ~40 MB of RAM</li>
         <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-focus" /> English, Українська, Русский</li>
       </ul>
     </div>

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Landing page for Pomodoro, a native Pomodoro timer for Windows",
+  "description": "Landing page for Pomodoro, a native Pomodoro timer for Windows and macOS",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",

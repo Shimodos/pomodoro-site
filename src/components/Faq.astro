@@ -6,19 +6,19 @@ const faq = [
   },
   {
     q: 'Why is there no installer?',
-    a: 'There is nothing to install. Unzip the archive anywhere, run Pomodoro.exe, optionally tick “Start with Windows” in settings. To uninstall, delete the folder and, if you like, %AppData%\\PomodoroTimer.',
+    a: 'On Windows there is nothing to install: unzip the archive anywhere, run Pomodoro.exe, optionally tick “Start with Windows” in settings. To uninstall, delete the folder and, if you like, %AppData%\\PomodoroTimer. On the Mac the download is a disk image: open it and drag Pomodoro to Applications.',
   },
   {
-    q: 'Windows SmartScreen says the publisher is unknown. Is that normal?',
-    a: 'Yes, for now. The executable is not signed with a paid code-signing certificate, so the first launch of a freshly downloaded build may show a SmartScreen warning. Click “More info”, then “Run anyway”. You can also build the app yourself from the source with the .NET 8 SDK.',
+    q: 'Windows SmartScreen or macOS Gatekeeper complains on first launch. Is that normal?',
+    a: 'Yes, for now. The builds are not signed with a paid certificate. On Windows click “More info”, then “Run anyway”. On the Mac right-click Pomodoro → Open → Open, once. You can also build the app yourself from the source: the .NET 8 SDK on Windows, the Command Line Tools on a Mac.',
   },
   {
     q: 'Which download should I pick?',
-    a: 'The self-contained zip is the safe choice: it runs on any 64-bit Windows 10 or 11. The framework-dependent zip is a fraction of the size but needs the .NET 8 Desktop Runtime installed.',
+    a: 'Windows: the self-contained zip is the safe choice, it runs on any 64-bit Windows 10 or 11; the framework-dependent zip is a fraction of the size but needs the .NET 8 Desktop Runtime. Mac: the .dmg, or the zip if you prefer to place the app yourself. Both Mac builds are universal and need macOS 13 or newer.',
   },
   {
     q: 'Does it collect anything or need an account?',
-    a: 'No. It never goes online. The only files it writes are settings.json, a small activity.log with timer events and error.log, all in %AppData%\\PomodoroTimer.',
+    a: 'No. It never goes online. The only files it writes are settings.json, a small activity.log with timer events and error.log, in %AppData%\\PomodoroTimer on Windows and ~/Library/Application Support/PomodoroTimer on the Mac.',
   },
   {
     q: 'Can I use my own sounds?',

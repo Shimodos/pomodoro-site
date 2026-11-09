@@ -28,7 +28,7 @@ const ogImage = new URL(`${base}/og.png`, Astro.site);
     <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Pomodoro for Windows" />
+    <meta property="og:site_name" content="Pomodoro for Windows and macOS" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
@@ -46,7 +46,7 @@ const ogImage = new URL(`${base}/og.png`, Astro.site);
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       name: 'Pomodoro',
-      operatingSystem: 'Windows 10, Windows 11',
+      operatingSystem: 'Windows 10, Windows 11, macOS 13 or later',
       applicationCategory: 'ProductivityApplication',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       license: 'https://opensource.org/licenses/MIT',

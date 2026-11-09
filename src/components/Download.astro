@@ -10,10 +10,14 @@ const latest = `${repo}/releases/latest`;
     <div class="grid gap-12 md:grid-cols-[1fr_1fr] md:items-start">
       <div>
         <p class="text-sm font-semibold tracking-wide text-focus uppercase">Download</p>
-        <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Get Pomodoro for Windows</h2>
+        <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Get Pomodoro for Windows or Mac</h2>
         <p class="mt-4 text-lg text-white/70 text-pretty">
-          Windows 10 / 11, 64-bit. Unzip, run <code class="rounded bg-white/10 px-1.5 py-0.5 text-[0.9em]">Pomodoro.exe</code>, done.
-          Settings are kept in <code class="rounded bg-white/10 px-1.5 py-0.5 text-[0.9em]">%AppData%\PomodoroTimer</code>.
+          <strong class="text-white/90">Windows 10 / 11</strong>, 64-bit: unzip, run <code class="rounded bg-white/10 px-1.5 py-0.5 text-[0.9em]">Pomodoro.exe</code>, done.
+          <strong class="text-white/90">macOS 13+</strong>, Apple Silicon and Intel: open the disk image, drag Pomodoro to Applications.
+        </p>
+        <p class="mt-3 text-sm text-white/50">
+          Settings live in <code class="rounded bg-white/10 px-1.5 py-0.5">%AppData%\PomodoroTimer</code> on Windows and
+          <code class="rounded bg-white/10 px-1.5 py-0.5">~/Library/Application Support/PomodoroTimer</code> on the Mac. The same file works on both.
         </p>
         <p class="mt-4 text-sm text-white/50" id="dl-meta">
           Latest version on <a href={latest} class="underline underline-offset-4 hover:text-white">GitHub Releases</a>.
@@ -26,6 +30,7 @@ const latest = `${repo}/releases/latest`;
       </div>
 
       <div class="grid gap-4">
+        <p class="flex items-center gap-2 text-sm font-semibold tracking-wide text-white/60 uppercase"><Icon name="windows" size={14} /> Windows</p>
         <a
           id="dl-standalone"
           href={latest}
@@ -57,6 +62,38 @@ const latest = `${repo}/releases/latest`;
           Unsigned build: on first run Windows SmartScreen may ask you to confirm. Choose “More info”, then “Run anyway”, or build from source.
           The small build needs the <a href="https://dotnet.microsoft.com/download/dotnet/8.0" class="underline underline-offset-2 hover:text-white/80">.NET 8 Desktop Runtime</a>.
         </p>
+
+        <p class="mt-4 flex items-center gap-2 text-sm font-semibold tracking-wide text-white/60 uppercase"><Icon name="apple" size={14} /> macOS</p>
+        <a
+          id="dl-mac-dmg"
+          href={latest}
+          class="group flex items-center gap-5 rounded-2xl border border-white/15 bg-white/5 p-6 transition hover:border-focus hover:bg-white/10"
+        >
+          <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-focus text-white"><Icon name="apple" size={22} /></span>
+          <span class="min-w-0">
+            <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span class="text-lg font-semibold tracking-tight">Disk image (.dmg)</span>
+              <span class="rounded-full bg-focus/20 px-2 py-0.5 text-xs font-medium text-focus">Recommended</span>
+            </span>
+            <span class="mt-1 block text-sm text-white/60">Open it and drag Pomodoro to Applications. macOS 13 Ventura or newer, universal. <span data-size="mac-dmg"></span></span>
+          </span>
+        </a>
+
+        <a
+          id="dl-mac-zip"
+          href={latest}
+          class="group flex items-center gap-5 rounded-2xl border border-white/15 bg-white/5 p-6 transition hover:border-break hover:bg-white/10"
+        >
+          <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-white/10 text-white"><Icon name="download" size={22} /></span>
+          <span class="min-w-0">
+            <span class="text-lg font-semibold tracking-tight">Zipped app</span>
+            <span class="mt-1 block text-sm text-white/60">The same Pomodoro.app in a zip, if you prefer to place it yourself. <span data-size="mac-zip"></span></span>
+          </span>
+        </a>
+
+        <p class="text-xs text-white/40">
+          The Mac build is not notarized yet. On first launch macOS says it “cannot be opened”: right-click Pomodoro → Open → Open, once.
+        </p>
       </div>
     </div>
   </div>
@@ -79,6 +116,8 @@ const latest = `${repo}/releases/latest`;
 
       const standalone = rel.assets.find((a) => /win-x64\.zip$/i.test(a.name));
       const framework = rel.assets.find((a) => /framework\.zip$/i.test(a.name));
+      const macDmg = rel.assets.find((a) => /macos\.dmg$/i.test(a.name));
+      const macZip = rel.assets.find((a) => /macos\.zip$/i.test(a.name));
 
       const set = (id: string, asset: Asset | undefined, key: string) => {
         const link = document.getElementById(id) as HTMLAnchorElement | null;
@@ -89,6 +128,8 @@ const latest = `${repo}/releases/latest`;
       };
       set('dl-standalone', standalone, 'standalone');
       set('dl-framework', framework, 'framework');
+      set('dl-mac-dmg', macDmg, 'mac-dmg');
+      set('dl-mac-zip', macZip, 'mac-zip');
 
       const meta = document.getElementById('dl-meta');
       if (meta) {

@@ -1,6 +1,6 @@
 # Pomodoro — website
 
-Landing page for [Pomodoro](https://github.com/Shimodos/PomodoroTimer), a native Pomodoro timer for Windows.
+Landing page for [Pomodoro](https://github.com/Shimodos/PomodoroTimer), a native Pomodoro timer for Windows and macOS.
 
 Live: https://shimodos.github.io/pomodoro-site/
 
@@ -42,6 +42,10 @@ move ..\..\src\assets\shots\og.png ..\..\public\og.png
 ```
 
 Requires the .NET 8 SDK and the app repository checked out next to this one.
+
+The macOS screenshots (`src/assets/shots/mac-*.png`) are real window captures of the Mac build
+(`macos/build/Pomodoro.app` in the app repository, light and dark theme, `POMODORO_DATA_DIR` pointed at a
+scratch folder) taken with `screencapture -l<window id>` at 2x.
 
 ## Promo clips
 

@@ -1,0 +1,59 @@
+---
+import Icon from './Icon.astro';
+import Shot from './Shot.astro';
+import mainLight from '../assets/shots/mac-main-light.png';
+import mainDark from '../assets/shots/mac-main-dark.png';
+import compactLight from '../assets/shots/mac-compact-light.png';
+import compactDark from '../assets/shots/mac-compact-dark.png';
+import settingsLight from '../assets/shots/mac-settings-timer-light.png';
+import settingsDark from '../assets/shots/mac-settings-timer-dark.png';
+
+const differences = [
+  'Native window with the traffic lights; the title sits in the centre',
+  'A menu bar item instead of the tray icon: minutes left, Show, Start / Pause, Settings, Quit',
+  'macOS notification banners, “Open at login” as a login item',
+  'SF Symbols and the system font; the same colors, sizes and layout otherwise',
+  'The same settings.json: copy it between a PC and a Mac and nothing changes',
+];
+---
+
+<section id="mac" class="border-t border-line dark:border-line-dark">
+  <div class="mx-auto max-w-6xl px-6 py-24">
+    <div class="grid gap-12 md:grid-cols-[1fr_1.2fr] md:items-center">
+      <div>
+        <p class="inline-flex items-center gap-2 text-sm font-semibold tracking-wide text-focus uppercase">
+          <Icon name="apple" size={16} /> Also on the Mac
+        </p>
+        <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">The same timer, written for macOS</h2>
+        <p class="mt-4 text-lg text-ink-muted text-pretty dark:text-ink-muted-dark">
+          Not a port of the Windows binary and not a web view: a native Swift app built with AppKit and SwiftUI.
+          Same timer logic, same two windows, same three languages. macOS 13 Ventura or newer, Apple Silicon and Intel.
+        </p>
+        <ul class="mt-6 space-y-2 text-ink-muted dark:text-ink-muted-dark">
+          {differences.map((d) => (
+            <li class="flex items-start gap-2.5"><Icon name="check" size={18} class="mt-0.5 shrink-0 text-focus" /> <span>{d}</span></li>
+          ))}
+        </ul>
+        <a
+          href="#download"
+          class="mt-8 inline-flex h-12 items-center gap-2.5 rounded-full bg-ink px-6 text-base font-semibold text-white transition hover:bg-ink/85 dark:bg-white dark:text-ink dark:hover:bg-white/90"
+        >
+          <Icon name="apple" size={18} />
+          Download for Mac
+        </a>
+      </div>
+
+      <div class="relative mx-auto w-full max-w-[560px]">
+        <div class="relative ml-auto w-[300px] sm:w-[340px]">
+          <Shot light={mainLight} dark={mainDark} alt="Pomodoro for macOS: main window, focus ready, 25:00" width={340} rounded="rounded-2xl" />
+          <div class="absolute -bottom-10 -left-20 hidden w-[200px] sm:block md:-left-32">
+            <Shot light={compactLight} dark={compactDark} alt="Pomodoro for macOS in compact mode" width={200} rounded="rounded-xl" />
+          </div>
+        </div>
+        <div class="mt-16 hidden sm:block">
+          <Shot light={settingsLight} dark={settingsDark} alt="Pomodoro for macOS: settings window, Timer page" width={560} rounded="rounded-2xl" class="w-full" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
