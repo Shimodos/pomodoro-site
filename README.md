@@ -67,6 +67,22 @@ dotnet run -c Release -- ../../public/promo-settings.mp4 -clip settings -ffmpeg 
 
 `-frames <dir>` additionally dumps a PNG every half second for checking. Needs ffmpeg (`winget install Gyan.FFmpeg`).
 
+## macOS promo
+
+[`tools/promo-mac`](tools/promo-mac) renders the macOS announcement images and clip from real window
+captures of the Mac build (Swift + AppKit + AVFoundation, no ffmpeg; needs the Command Line Tools):
+
+```bash
+cd tools/promo-mac && ./build.sh
+./bin/stills <captures-dir> <out-dir>      # 1-hero, 2-colors, 3-settings, 4-installer (1600×900)
+./bin/clip <frames-dir> ../../public/promo-mac.mp4   # 1080×1350, 30 fps, ~12 s
+```
+
+Captures: `focus-running-light`, `compact-break-dark`, `break-running-dark`, `break-view-light`,
+`settings-timer-dark-win-Settings`, `dmg-installer` for the stills; `f5…f1` (focus per second), `b0…b2`
+(break), `c0…c2` (compact) for the clip. Taken with `screencapture -l<window id>` while the app runs with
+`POMODORO_DATA_DIR` pointed at a scratch folder.
+
 ## License
 
 MIT
