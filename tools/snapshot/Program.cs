@@ -151,6 +151,8 @@ internal static class Program
         vm.Dispose();
 
         SaveOg(Path.Combine(outDir, "focus-light.png"), Path.Combine(outDir, "og.png"));
+        SaveStatusIcons(Path.Combine(outDir, "status-icons-light.png"), dark: false);
+        SaveStatusIcons(Path.Combine(outDir, "status-icons-dark.png"), dark: true);
         Console.WriteLine($"done -> {Path.GetFullPath(outDir)}");
         return 0;
     }
@@ -202,6 +204,56 @@ internal static class Program
         using var stream = File.Create(outPath);
         encoder.Save(stream);
         Console.WriteLine($"{Path.GetFileName(outPath)} {W}x{H}");
+    }
+
+    /// <summary>
+    /// The tray / taskbar icon in its typical states, drawn by the app's own <see cref="StatusIcon"/>
+    /// on a taskbar-colored strip, with a caption under each.
+    /// </summary>
+    private static void SaveStatusIcons(string outPath, bool dark)
+    {
+        var focus = Color.FromRgb(0xFF, 0x6B, 0x6B);
+        var rest = Color.FromRgb(0x38, 0xBD, 0xF8);
+        var states = new (string caption, string label, Color accent, bool running, double left)[]
+        {
+            ("Focus starts", "25", focus, true, 1.0),
+            ("Focus, 17 min left", "17", focus, true, 0.68),
+            ("Break", "4", rest, true, 0.75),
+            ("Paused", "12", focus, false, 0.48),
+            ("All done", "✓", focus, false, 0),
+        };
+
+        const int cell = 128, icon = 48, padX = 20, top = 28, H = 132;
+        int W = padX * 2 + cell * states.Length;
+        var back = new SolidColorBrush(dark ? Color.FromRgb(0x20, 0x20, 0x20) : Color.FromRgb(0xF3, 0xF3, 0xF3));
+        var ink = new SolidColorBrush(dark ? Color.FromRgb(0xC9, 0xCC, 0xD3) : Color.FromRgb(0x4A, 0x50, 0x5C));
+        var face = new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+        {
+            dc.DrawRectangle(back, null, new Rect(0, 0, W, H));
+            for (int i = 0; i < states.Length; i++)
+            {
+                var s = states[i];
+                double cx = padX + i * cell + cell / 2.0;
+                using var bmp = StatusIcon.Render((int)Math.Round(icon * _scale), s.label, s.accent, s.running, StatusIcon.Quantize(s.left));
+                dc.DrawImage(StatusIcon.ToImageSource(bmp), new Rect(cx - icon / 2.0, top, icon, icon));
+
+                var caption = Text(s.caption, face, 13, ink, cell - 8);
+                caption.TextAlignment = TextAlignment.Center;
+                dc.DrawText(caption, new Point(cx - (cell - 8) / 2.0, top + icon + 14));
+            }
+        }
+
+        int w = (int)Math.Round(W * _scale), h = (int)Math.Round(H * _scale);
+        var rtb = new RenderTargetBitmap(w, h, 96 * _scale, 96 * _scale, PixelFormats.Pbgra32);
+        rtb.Render(dv);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(rtb));
+        using var stream = File.Create(outPath);
+        encoder.Save(stream);
+        Console.WriteLine($"{Path.GetFileName(outPath)} {w}x{h}");
     }
 
     private static FormattedText Text(string text, Typeface face, double size, Brush brush, double maxWidth = 1000)

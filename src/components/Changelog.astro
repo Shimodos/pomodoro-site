@@ -1,0 +1,109 @@
+---
+// What changed in each release, newest first. Add a new entry at the top when a version ships;
+// `shot` is optional and takes a light / dark pair like the other screenshots.
+import Shot from './Shot.astro';
+import statusLight from '../assets/shots/status-icons-light.png';
+import statusDark from '../assets/shots/status-icons-dark.png';
+
+const releases = [
+  {
+    version: '1.1.0',
+    date: '2026-11-25',
+    title: 'A live icon on the taskbar',
+    platform: 'Windows',
+    changes: [
+      'The taskbar button now shows the timer status instead of the static app icon: minutes left in the color of the running phase, a dark disc when paused, a check mark when the run is finished.',
+      'The tray icon and the taskbar icon got a ring that shrinks with the time left, like the ring in the window.',
+    ],
+    shot: { light: statusLight, dark: statusDark, alt: 'The status icon in five states: focus starting, focus with 17 minutes left, break, paused, all done', width: 680 },
+  },
+  {
+    version: '1.0.3',
+    date: '2026-11-09',
+    title: 'Native macOS version',
+    platform: 'macOS',
+    changes: [
+      'Pomodoro for the Mac, rewritten in Swift: the same timer, the same settings file, a menu bar item with the minutes left, macOS notifications, open at login.',
+    ],
+  },
+  {
+    version: '1.0.2',
+    date: '2026-11-09',
+    title: 'Alert sounds survive sleep',
+    platform: 'Windows',
+    changes: [
+      'After the computer had slept, the end-of-phase sound could stay silent until the app was restarted. Each alert now gets a fresh player, and the player is released when Windows suspends.',
+    ],
+  },
+  {
+    version: '1.0.1',
+    date: '2026-11-05',
+    title: 'Pop up when a phase ends',
+    platform: 'Windows',
+    changes: [
+      'When a focus or a break ends, the window comes back on top of everything, even from the tray. There is a switch for it in Settings → System.',
+    ],
+  },
+  {
+    version: '1.0.0',
+    date: '2026-11-04',
+    title: 'First release',
+    platform: 'Windows',
+    changes: [
+      'Focus, short and long breaks, a session limit with a real end time, two accent colors, eight sounds or your own, compact mode, tray, three languages.',
+    ],
+  },
+];
+
+const fmt = new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+const base = 'https://github.com/Shimodos/PomodoroTimer/releases';
+---
+
+<section id="changelog" class="border-t border-line bg-card dark:border-line-dark dark:bg-card-dark">
+  <div class="mx-auto grid max-w-6xl gap-12 px-6 py-24 md:grid-cols-[1fr_2fr]">
+    <div>
+      <p class="text-sm font-semibold tracking-wide text-break-deep uppercase dark:text-break">Changelog</p>
+      <h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">What's new</h2>
+      <p class="mt-4 text-ink-muted dark:text-ink-muted-dark">
+        Every version with its downloads is on
+        <a href={base} class="font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-ink dark:text-ink-dark dark:decoration-line-dark dark:hover:decoration-ink-dark">GitHub Releases</a>.
+      </p>
+    </div>
+
+    <ol class="space-y-12">
+      {releases.map((r, i) => (
+        <li>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <a
+              href={`${base}/tag/v${r.version}`}
+              class:list={[
+                'rounded-full px-3 py-1 text-sm font-semibold tabular-nums transition',
+                i === 0
+                  ? 'bg-focus text-white hover:bg-focus-deep'
+                  : 'bg-paper text-ink ring-1 ring-line hover:ring-ink-muted dark:bg-paper-dark dark:text-ink-dark dark:ring-line-dark',
+              ]}
+            >
+              {r.version}
+            </a>
+            <time datetime={r.date} class="text-sm text-ink-muted dark:text-ink-muted-dark">{fmt.format(new Date(r.date))}</time>
+            <span class="text-sm text-ink-muted dark:text-ink-muted-dark">· {r.platform}</span>
+          </div>
+          <h3 class="mt-3 text-xl font-semibold tracking-tight">{r.title}</h3>
+          <ul class="mt-3 space-y-2 leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+            {r.changes.map((c) => (
+              <li class="flex gap-3">
+                <span class="mt-[0.7em] size-1.5 shrink-0 rounded-full bg-ink-muted/50 dark:bg-ink-muted-dark/50" aria-hidden="true"></span>
+                <span>{c}</span>
+              </li>
+            ))}
+          </ul>
+          {r.shot && (
+            <div class="mt-6">
+              <Shot light={r.shot.light} dark={r.shot.dark} alt={r.shot.alt} width={r.shot.width} rounded="rounded-xl" class="w-full max-w-[680px]" />
+            </div>
+          )}
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
